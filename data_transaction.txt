@@ -1,4 +1,0 @@
-[2026-09-19 15:44:43] Account Created.
-[2026-09-19 15:46:20]
-	 Deposited amount: 10000.0.
-	 New Balance: 12500.0
