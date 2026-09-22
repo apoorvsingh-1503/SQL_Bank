@@ -9,7 +9,7 @@ q1 = "NAME OF FAVOURITE MOVIE"
 q2 = "NAME OF BIRTH CITY"
 q3 = "FAVOURITE COLOUR"
 
-def query_db(q,data=None):
+def raise_query(q, data=None,a=0):
     con = sqlite3.connect(db)
     cur = con.cursor()
 
@@ -17,33 +17,15 @@ def query_db(q,data=None):
         cur.execute(q)
     else:
         cur.execute(q,data)
-
-    result = cur.fetchone()
-    con.close()
-    return result
-
-def query_dba(q, data=None):
-    con = sqlite3.connect(db)
-    cur = con.cursor()
-
-    if data is None:
-        cur.execute(q)
-    else:
-        cur.execute(q,data)
-
-    result = cur.fetchall()
-    con.close()
-    return result
-
-def execute(q,data=None):
-    con = sqlite3.connect(db)
-    cur = con.cursor()
-    if data is None:
-        cur.execute(q)
-    else:
-        cur.execute(q,data)
+    result=None
+    if a==1:
+        result=cur.fetchone()
+    elif a==2:
+        result = cur.fetchall()
     con.commit()
     con.close()
+    return result
+
 os.system("color 02")
 
 def acc_generator():
@@ -60,16 +42,16 @@ def transaction_log(ACCOUNT_NUMBER,AMOUNT,BENEFICIARY,ACTION):
     q=''' insert into TRANSACTIONS
       (ACCOUNT_NUMBER,DATE,TIME,AMOUNT,BENEFICIARY,ACTION)
       VALUES(?,?,?,?,?,?)'''
-    execute(q,d)
+    raise_query(q,d,0)
 
 def delete_database(acc,action):
     if action=="ALL":
-        execute('''DELETE FROM ACCOUNT WHERE ACCOUNT_NUMBER = ?''', (acc,))
-        execute('''DELETE FROM BENEFICIARY WHERE ACCOUNT_NUMBER = ?''', (acc,))
-        execute('''DELETE FROM TRANSACTIONS WHERE ACCOUNT_NUMBER = ?''', (acc,))
+        raise_query('''DELETE FROM ACCOUNT WHERE ACCOUNT_NUMBER = ?''', (acc,),0)
+        raise_query('''DELETE FROM BENEFICIARY WHERE ACCOUNT_NUMBER = ?''', (acc,),0)
+        raise_query('''DELETE FROM TRANSACTIONS WHERE ACCOUNT_NUMBER = ?''', (acc,),0)
         print("ALL LOGS DELETED")
     elif action=="BENEFICIARY":
-        execute('''DELETE FROM BENEFICIARY WHERE "BENEFICIARY_AC/NO" = ?''', (acc,))
+        raise_query('''DELETE FROM BENEFICIARY WHERE "BENEFICIARY_AC/NO" = ?''', (acc,))
 
 def add_beneficiary_to_file(account_number):
     b_name = input("Beneficiary Name: ")
@@ -79,26 +61,26 @@ def add_beneficiary_to_file(account_number):
     q=''' insert into BENEFICIARY
       (ACCOUNT_NUMBER,BENEFICIARY_NAME,"BENEFICIARY_AC/NO","MAX.LIMIT")
       VALUES(?,?,?,?)'''
-    execute(q,d)
+    raise_query(q,d,0)
     print("Beneficiary added successfully.")
 
 def print_beneficiary_file():
     q=''' select *
           from BENEFICIARY
       '''
-    data= query_dba(q)
-    if not data:
+    dd= raise_query(q,None,2)
+    if not dd:
         print("No beneficiaries found.")
         return        
     print("\n--- Beneficiary List ---")    
-    for idx, data in enumerate(data, 1):
-        print(f"{idx}. Name: {data[1]} | A/c: {data[2]} | Limit: {data[3]}")
+    for idx, dd in enumerate(dd, 1):
+        print(f"{idx}. Name: {dd[1]} | A/c: {dd[2]} | Limit: {dd[3]}")
 
 def delete_beneficiary_from_file():
     q=''' select *
           from BENEFICIARY
       '''
-    data=query_dba(q)
+    data=raise_query(q,None,2)
     if not data:
         print("No beneficiaries file found.")
         return
@@ -109,7 +91,7 @@ def delete_beneficiary_from_file():
     accd = int(input("Enter Account Number to delete: ").strip())
     b=''' SELECT BENEFICIARY_NAME FROM BENEFICIARY
           WHERE "BENEFICIARY_AC/NO" =?'''
-    match=query_db(b,(accd,))
+    match=raise_query(b,(accd,),1)
     if match:
         delete_database(accd,"BENEFICIARY")
         print("Beneficiary deleted.")
@@ -119,7 +101,7 @@ def print_transactions_file():
     q=''' select *
           from TRANSACTIONS
       '''
-    data= query_dba(q)       
+    data= raise_query(q,None,2)       
     print("\n--- Transactions List ---")    
     for idx, data in enumerate(data, 1):
         print(f"{idx}. ACCOUNT_NUMBER: {data[0]} | DATE: {data[1]} |TIME: {data[2]} | AMOUNT: {data[3]} | TO: {data[4]} | ACTION: {data[5]}")
@@ -127,7 +109,7 @@ def account_creation():
     q=''' select count(*)
           from ACCOUNT
       '''
-    c=query_db(q)[0]
+    c=raise_query(q,None,1)[0]
     if c>0:
         print("Account Already Exists")
         ch = input("Do you want to continue (1) or Create a new account (2)? ")
@@ -136,7 +118,7 @@ def account_creation():
                   FROM ACCOUNT
                   limit 1
                 '''
-            a=query_db(q)[0]
+            a=raise_query(q,None,1)[0]
             delete_database(a,"ALL")
         else: 
             return
@@ -161,7 +143,7 @@ def account_creation():
           (ACCOUNT_HOLDER,ACCOUNT_NUMBER,SPIN,"Q1: NAME OF FAVOURITE MOVIE",
            "Q2: NAME OF BIRTH CITY","Q3: FAVOURITE COLOUR",HSPIN,TWPIN,AMOUNT)
           VALUES(?,?,?,?,?,?,?,?,?)'''
-    execute(q,raw_data)
+    raise_query(q,raw_data,0)
     transaction_log(account_no,balance_initial,"SELF","ACCOUNT CREATED")      
     print(f"Account created successfully! Your Account Number is {account_no}")
 
@@ -173,7 +155,7 @@ def load_account_data():
         from ACCOUNT
         LIMIT 1
         '''
-    data=query_db(q)
+    data=raise_query(q,None,1)
     if not data:
         return None
     return{
@@ -190,7 +172,7 @@ def load_account_data():
 def update_account_balance(new_balance):
     q=''' update ACCOUNT 
         set AMOUNT = ?'''
-    execute(q,(new_balance,))
+    raise_query(q,(new_balance,),0)
 
 def login():
     data = load_account_data()
@@ -256,12 +238,12 @@ def dashboard(data):
                     FROM BENEFICIARY
                     WHERE "BENEFICIARY_AC/NO"=?
                     '''
-            data=query_db(bq,(accd,))
-            if not data:
+            ds=raise_query(bq,(accd,),1)
+            if not ds:
                 print("NO SUCH BENEFICIARY")
             else:
-                bname=data[0]
-                limit=data[2]
+                bname=ds[0]
+                limit=ds[2]
                 amount=float(input("ENTER AMOUNT TO BE TRANSFERRED : "))
                 if amount>limit:
                     print("AMOUNT EXCEEDS MAX TRANSFER LIMIT")
@@ -323,7 +305,7 @@ def dashboard(data):
                 q=''' update ACCOUNT
                       set spin =?
                       WHERE ACCOUNT_NUMBER=?'''
-                execute(q,d)
+                raise_query(q,d,0)
                 print("PIN changed successfully.")
             else:
                 print("Verification failed.")
