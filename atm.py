@@ -1,5 +1,4 @@
 from datetime import datetime
-import os
 import random
 import string
 import sqlite3
@@ -25,7 +24,21 @@ def query_db(q, data=None,a=0):
     con.close()
     return result
 
-os.system("color 02")
+def authenticate(d, pins):
+    # pins=["SPIN","TWPIN","Questions"]
+    for pin in pins:
+        tp=int(input(f"ENTER {pin} PIN:  "))
+        if pin=='SPIN' and tp!=d['PIN']:
+            return False
+        elif pin=='TWPIN' and tp!=d["TRANSACTION-WITHDRAWL PIN"]:
+            return False
+        elif pin=='HSPIN' and tp!= d["HIGH-SEQURITY PIN"]:
+            return False
+        else:
+            print("INVALID PIN PASSED")
+    return True
+
+
 
 def acc_generator(): # can be auto generated
     return "".join(random.choices(string.digits, k=10))
@@ -149,7 +162,7 @@ def load_account_data():
     data=query_db(q,None,1)
     if not data:
         return None
-    return{
+    return {
         "NAME" : data[0],
         "ACCOUNT_NO" : data[1],
         "PIN" : data[2],
@@ -172,8 +185,9 @@ def login():
         return False
     a = 3
     while a > 0:
-        epin = int(input("ENTER YOUR STANDARD PIN : "))
-        if epin == data["PIN"]:
+        # epin = int(input("ENTER YOUR STANDARD PIN : "))
+        passed= authenticate(data,['SPIN'])
+        if passed:
             print("LOGIN SUCCESSFUL!")
             dashboard(data)
             return True
@@ -181,8 +195,8 @@ def login():
             a -= 1
             print(f"INCORRECT PIN. ATTEMPTS LEFT = {a}")
     print("\nTOO MANY FAILED ATTEMPTS. SECURITY SYSTEM TRIGGERED")
-    ehs_pin = input("ENTER YOUR HIGH SECURITY PIN : ")
-    if ehs_pin == data["HIGH-SEQURITY PIN"]:
+    passed= authenticate(data,['HSPIN'])
+    if passed:
         print("SECURITY VERIFICATION PASSED")
         dashboard(data)
         return True
@@ -214,8 +228,10 @@ def dashboard(data):
         print("10. Logout")
         c = int(input("Select an option (1-10): "))
         if c == 1:
-            hs = int(input("ENTER HIGH SECURITY PIN : "))
-            if hs == data["HIGH-SEQURITY PIN"]:
+            passed= authenticate(data,['HSPIN'])
+            if passed:
+            # hs = int(input("ENTER HIGH SECURITY PIN : "))
+            # if hs == data["HIGH-SEQURITY PIN"]:
                 a=data["ACCOUNT_NO"]
                 add_beneficiary_to_file(a)
             else:
@@ -243,8 +259,7 @@ def dashboard(data):
                     if amount>d["AMOUNT"]:
                         print("INSUFFICIENT BALANCE")
                     else:
-                        tp=int(input("ENTER TRANSACTION-WITHDRAWL PIN:  "))
-                        if tp==d["TRANSACTION-WITHDRAWL PIN"]:
+                        if authenticate(data,['TWPIN']):
                             new_bal = d["AMOUNT"] - amount
                             update_account_balance(new_bal)
                             action = "TRANSFERRED"
@@ -258,8 +273,7 @@ def dashboard(data):
             if amount > current_data["AMOUNT"]:
                 print("TRANSACTION CANNOT BE PROCESSED. INSUFFICIENT BALANCE")
             else:
-                tp = int(input("Enter TPIN: "))
-                if tp == current_data["TRANSACTION-WITHDRAWL PIN"]:
+                if authenticate(current_data,['TWPIN']):
                     new_bal = current_data["AMOUNT"] - amount
                     update_account_balance(new_bal)
                     action = "WITHDRAWN"
@@ -270,8 +284,7 @@ def dashboard(data):
         elif c == 5:
             amount = float(input("Enter amount: "))
             current_data = load_account_data()
-            tp = int(input("Enter TPIN: "))
-            if tp == current_data["TRANSACTION-WITHDRAWL PIN"]:
+            if authenticate(current_data,['TWPIN']):
                 new_bal = current_data["AMOUNT"] + amount
                 update_account_balance(new_bal)
                 action = "DEPOSITED"
@@ -288,8 +301,8 @@ def dashboard(data):
             ans1 = input(f"Answer Q1 {q1}): ")
             ans2 = input(f"Answer Q2 {q2}): ")
             ans3 = input(f"Answer Q3 {q3}): ")
-            entered_hs = int(input("Enter High-Security PIN: "))
-            if ans1 == data["a1"] and ans2 == data["a2"] and ans3 == data["a3"] and entered_hs == data["HIGH-SEQURITY PIN"]:
+            if (ans1 == data["a1"] and ans2 == data["a2"] and 
+                ans3 == data["a3"] and authenticate(current_data,['HSPIN'])):
                 new_pin = input("Enter new standard PIN: ")
                 data["PIN"] = new_pin
                 d=(new_pin,data["ACCOUNT_NO"])
@@ -301,9 +314,7 @@ def dashboard(data):
             else:
                 print("Verification failed.")
         elif c == 9: 
-            tp = int(input("Enter TPIN: "))
-            hs = int(input("Enter High-Security PIN: "))
-            if tp == data["TRANSACTION-WITHDRAWL PIN"] and hs == data["HIGH-SEQURITY PIN"]:
+            if authenticate(data, ['TPIN', 'HSPIN']):
                 delete_beneficiary_from_file()
             else:
                 print("Incorrect credentials.")
