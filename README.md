@@ -31,11 +31,14 @@ SQL_Bank/
 #Prerequisites
 	.Python 3.x installed on your machine.
 
-##Installation & Setup
+#Installation & Setup
 	Clone the repository:git clone [https://github.com/apoorvsingh-1503/SQL_Bank.git](https://github.com/apoorvsingh-1503/SQL_Bank.git)
-cd SQL_Bank
-	Run the application: python main.py
-##Security Note
+	cd SQL_Bank
+
+#Run the application: 
+	python main.py
+	
+#Security Note
 	Local database files (*.sqlite3) are intentionally excluded from version control via .gitignore to prevent sensitive banking records 	or data from being 		exposed on GitHub.
 
 
