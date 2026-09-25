@@ -26,7 +26,7 @@ SQL_Bank/
 │   ├── beneficiary.py       # Beneficiary management and transfers[cite: 4]
 │   ├── transaction.py       # Deposit, withdrawal, and transaction logging[cite: 6]
 │   └── utils.py             # Database connectivity and security authentication[cite: 7]
-```text
+```
 
 Prerequisites
 	.Python 3.x installed on your machine.
