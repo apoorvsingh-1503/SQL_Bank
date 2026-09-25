@@ -26,15 +26,15 @@ SQL_Bank/
 │   ├── beneficiary.py       # Beneficiary management and transfers[cite: 4]
 │   ├── transaction.py       # Deposit, withdrawal, and transaction logging[cite: 6]
 │   └── utils.py             # Database connectivity and security authentication[cite: 7]
+```text
 
 Prerequisites
-  Python 3.x installed on your machine.
-git clone [https://github.com/apoorvsingh-1503/SQL_Bank.git](https://github.com/apoorvsingh-1503/SQL_Bank.git)
+	.Python 3.x installed on your machine.
+Installation & Setup
+	Clone the repository:git clone [https://github.com/apoorvsingh-1503/SQL_Bank.git](https://github.com/apoorvsingh-1503/SQL_Bank.git)
 cd SQL_Bank
-python main.py
-🔒 Security Note
-  Local database files (*.sqlite3) are intentionally excluded from version control via .gitignore to prevent sensitive banking records or data from being exposed on GitHub.
-│
-├── main.py                  # Entry point for the banking application[cite: 5]
-├── .gitignore               # Files ignored by git (e.g., database files)[cite: 1]
-└── README.md                # Project documentation
+	Run the application: python main.py
+Security Note
+	Local database files (*.sqlite3) are intentionally excluded from version control via .gitignore to prevent sensitive banking records 	or data from being exposed on GitHub.
+
+
