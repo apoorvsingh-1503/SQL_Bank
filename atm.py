@@ -3,7 +3,7 @@ import random
 import string
 import sqlite3
 
-db="BANK.sqlite3"
+db="bank.sqlite3"
 q1 = "NAME OF FAVOURITE MOVIE"
 q2 = "NAME OF BIRTH CITY"
 q3 = "FAVOURITE COLOUR"
@@ -25,25 +25,28 @@ def query_db(q, data=None,a=0):
     return result
 
 def authenticate(d, pins):
-    # pins=["SPIN","TWPIN","Questions"]
+    pinss={"SPIN":"STANDARD PIN","TWPIN":"TRANSACTION-WITHDRAWL PIN","HSPIN":"HIGH SEQURITY PIN"}
     for pin in pins:
-        tp=int(input(f"ENTER {pin} PIN:  "))
-        if pin=='SPIN' and tp!=d['PIN']:
+        tp=int(input(f"ENTER {pinss.get(pin,pin)} :  "))
+        if pin=="SPIN" and tp!=d['SPIN']:
             return False
-        elif pin=='TWPIN' and tp!=d["TRANSACTION-WITHDRAWL PIN"]:
+        elif pin=="TWPIN" and tp!=d["TWPIN"]:
             return False
-        elif pin=='HSPIN' and tp!= d["HIGH-SEQURITY PIN"]:
+        elif pin=="HSPIN" and tp!= d["HSPIN"]:
             return False
-        else:
-            print("INVALID PIN PASSED")
+        elif pin=="QUESTIONS":
+            ans1 = input(f"Answer Q1 {q1}: ")
+            ans2 = input(f"Answer Q2 {q2}: ")
+            ans3 = input(f"Answer Q3 {q3}: ")
+            if ans1!=d["a1"] and ans2!=d["a2"] and ans3!=d["a3"]:
+                return False
+
     return True
-
-
 
 def acc_generator(): # can be auto generated
     return "".join(random.choices(string.digits, k=10))
 
-def hs_pin_generator():
+def hspin_generator():
     return "".join(random.choices(string.digits, k=4))
 
 def transaction_log(ACCOUNT_NUMBER,AMOUNT,BENEFICIARY,ACTION):
@@ -76,27 +79,16 @@ def add_beneficiary_to_file(account_number):
     query_db(q,d,0)
     print("Beneficiary added successfully.")
 
-def print_beneficiary_file():
+def print_beneficiary():
     q='select * from BENEFICIARY'
-    dd= query_db(q, a=2)
-    if not dd:
+    data = query_db(q, a=2)
+    if not data:
         print("No beneficiaries found.")
-        return        
+        return []       
     print("\n--- Beneficiary List ---")    
-    for idx, dd in enumerate(dd, 1):
-        print(f"{idx}. Name: {dd[1]} | A/c: {dd[2]} | Limit: {dd[3]}")
-
-def delete_beneficiary_from_file():
-    print_beneficiary_file()
-    accd = int(input("Enter Account Number to delete: ").strip())
-    b=''' SELECT BENEFICIARY_NAME FROM BENEFICIARY
-          WHERE "BENEFICIARY_AC/NO" =?'''
-    match=query_db(b,(accd,),1)
-    if match:
-        delete_database(accd,"BENEFICIARY")
-        print("Beneficiary deleted.")
-    else:
-        print("Invalid selection.")
+    for idx, r in enumerate(data, 1):
+        print(f"{idx}. Name: {r[1]} | A/c: {r[2]} | Limit: {r[3]}")
+    return data
 
 def print_transactions_file():
     q=''' select *
@@ -126,22 +118,26 @@ def account_creation():
             return
 
     name = input("ENTER ACCOUNT HOLDER NAME : ")
-    account_no = acc_generator()
-    pin = input("CREATE 4 DIGIT STANDARD PIN : ")   
-    
+    SPIN = input("CREATE 4 DIGIT STANDARD PIN : ") 
     print("GIVE ANSWERS TO 3 SECURITY QUESTIONS:")
     a1 = input(f"{q1} : ")
     a2 = input(f"{q2} : ")
     a3 = input(f"{q3} : ")
-    
-    HIGH_SEQURITY_PIN = hs_pin_generator()
-    print(f"YOUR HIGH SECURITY PIN IS : {HIGH_SEQURITY_PIN} (KEEP IT SAFELY)")
-    TRANSACTION_WITHDRAWL_PIN = input("Create a TRANSACTION-WITHDRAWL PIN "
+    account_no = acc_generator()    
+    HSPIN = hspin_generator()
+    TWPIN = input("Create a TRANSACTION-WITHDRAWL PIN "
                                       "(Transfer/Withdrawal PIN): ")
     balance_initial = 2500.0
+    print("\n\n\n")
+    print("ACCOUNT DETAILS------------")
+    print("ACCOUNT NUMBER :",account_no)
+    print("STANDARD PIN :",SPIN)
+    print("TWPIN PIN :",TWPIN)
+    print("HIGH SEQURITY PIN :",HSPIN)
+    print(f"ANSWERS TO ALL SEQURITY QUESTIONS\n :{a1}\n{a2}\n{a3}")
 
-    raw_data = (name,account_no, pin,a1,a2,a3,HIGH_SEQURITY_PIN,
-                TRANSACTION_WITHDRAWL_PIN,balance_initial)
+    raw_data = (name,account_no, SPIN,a1,a2,a3,HSPIN,
+                TWPIN,balance_initial)
 
     q=''' insert into ACCOUNT 
           (ACCOUNT_HOLDER,ACCOUNT_NUMBER,SPIN,"Q1: NAME OF FAVOURITE MOVIE",
@@ -153,9 +149,9 @@ def account_creation():
 
 def load_account_data():
     q='''select ACCOUNT_HOLDER as NAME,
-        ACCOUNT_NUMBER as ACCOUNT_NO ,SPIN as PIN,"Q1: NAME OF FAVOURITE MOVIE" as a1,
+        ACCOUNT_NUMBER as ACCOUNT_NO ,SPIN,"Q1: NAME OF FAVOURITE MOVIE" as a1,
         "Q2: NAME OF BIRTH CITY" as a2,"Q3: FAVOURITE COLOUR" as a3,
-        HSPIN as "HIGH-SEQURITY PIN",TWPIN as "TRANSACTION-WITHDRAWL PIN", AMOUNT
+        HSPIN,TWPIN, AMOUNT
         from ACCOUNT
         LIMIT 1
         '''
@@ -165,14 +161,15 @@ def load_account_data():
     return {
         "NAME" : data[0],
         "ACCOUNT_NO" : data[1],
-        "PIN" : data[2],
+        "SPIN" : data[2],
         "a1": data[3],
         "a2": data[4],
         "a3": data[5],
-        "HIGH-SEQURITY PIN" : data[6],
-        "TRANSACTION-WITHDRAWL PIN" : data[7],
+        "HSPIN" : data[6],
+        "TWPIN" : data[7],
         "AMOUNT" : data[8]
     }
+
 def update_account_balance(new_balance):
     q=''' update ACCOUNT 
         set AMOUNT = ?'''
@@ -185,7 +182,6 @@ def login():
         return False
     a = 3
     while a > 0:
-        # epin = int(input("ENTER YOUR STANDARD PIN : "))
         passed= authenticate(data,['SPIN'])
         if passed:
             print("LOGIN SUCCESSFUL!")
@@ -201,10 +197,8 @@ def login():
         dashboard(data)
         return True
     else:
-        ans1 = input(f"Answer Q1 {q1}: ")
-        ans2 = input(f"Answer Q2 {q2}: ")
-        ans3 = input(f"Answer Q3 {q3}: ")
-        if ans1 == data["a1"] and ans2 == data["a2"] and ans3 == data["a3"]:
+        p=authenticate(data,["QUESTIONS"])
+        if p:
             print("SECURITY VERIFICATION PASSED")
             dashboard(data)
             return True
@@ -213,113 +207,119 @@ def login():
             delete_database(data["ACCOUNT_NO"],"ALL")
             return False
 
+def add_beneficiary(data):
+    if authenticate(data, ['HSPIN']):
+        a=data["ACCOUNT_NO"]
+        add_beneficiary_to_file(a)
+    else:
+        print("INCORRECT HIGH SECURITY PIN ENTERED")
+
+def tranfer_beneficiary(data):
+    bfcs = print_beneficiary()
+    if bfcs==[]: return
+    i = int(input("Enter Index to delete: ").strip())
+    if i<1 or i>len(bfcs):
+        print("Invalid selection.")
+        return
+    bname=bfcs[i-1][1]
+    limit=bfcs[i-1][3]
+    amount=float(input("ENTER AMOUNT TO BE TRANSFERRED : "))
+    if amount>limit:
+        print("AMOUNT EXCEEDS MAX TRANSFER LIMIT")
+        return
+    if amount>data["AMOUNT"]:
+        print("INSUFFICIENT BALANCE")
+        return
+    if  not authenticate(data,['TWPIN']):
+        print("Incorrect TWPIN.")
+        return
+    new_bal = data["AMOUNT"] - amount
+    update_account_balance(new_bal)
+    action = "TRANSFERRED"
+    transaction_log(data["ACCOUNT_NO"],amount,bname,action)
+    print(f"Transaction successful! New Balance: {new_bal}")
+            
+def withdraw(data):
+    amount = float(input("Enter amount: "))
+    if amount > data["AMOUNT"]:
+        print("TRANSACTION CANNOT BE PROCESSED. INSUFFICIENT BALANCE")
+        return
+    if  not authenticate(data,['TWPIN']):
+        print("Incorrect TWPIN.")
+        return
+    new_bal = data["AMOUNT"] - amount
+    update_account_balance(new_bal)
+    action = "WITHDRAWN"
+    transaction_log(data["ACCOUNT_NO"],amount,"SELF",action)
+    print(f"Transaction successful! New Balance: {new_bal}")
+
+def deposit(data):
+    amount = float(input("Enter amount: "))
+    data = load_account_data()
+    if not authenticate(data,['TWPIN']):
+        print("Incorrect TWPIN.")
+        return
+    new_bal = data["AMOUNT"] + amount
+    update_account_balance(new_bal)
+    action = "DEPOSITED"
+    transaction_log(data["ACCOUNT_NO"],amount,"SELF",action)
+    print(f"Transaction successful! New Balance: {new_bal}")       
+
+def check_balance():
+    current_data = load_account_data()
+    print(f"Total Balance: {current_data['AMOUNT']}")
+
+def pin_change(data):
+    passed=authenticate(data,['HSPIN',"QUESTIONS"])
+    if passed:
+        new_pin = input("Enter new standard PIN: ")
+        data["SPIN"] = new_pin
+        d=(new_pin,data["ACCOUNT_NO"])
+        q=''' update ACCOUNT
+              set spin =?
+              WHERE ACCOUNT_NUMBER=?'''
+        query_db(q,d,0)
+        print("PIN changed successfully.")
+    else:
+        print("Verification failed.")
+
+def beneficiary_delete(data):
+    if not authenticate(data, ['TWPIN', 'HSPIN']): return
+    bfcs = print_beneficiary()
+    if bfcs==[]: return
+    i = int(input("Enter Index to delete: ").strip())
+    if i<1 or i>len(bfcs):
+        print("Invalid selection.")
+        return
+    accd = bfcs[i-1][2]
+    delete_database(accd,"BENEFICIARY")
+    print("Beneficiary deleted.")
+
+
 def dashboard(data):
-    while True:
+    c=0
+    while c!=10:
         print("\n--- Banking Menu ---")
         print("1. Add Beneficiary")
         print("2. Get All Beneficiary Data")
-        print("3. Transfer Money To Beneficiary")
-        print("4. Withdraw Money")
-        print("5. Deposit Money")
-        print("6. Check Total Balance")
+        print("3. Delete Beneficiary")
+        print("4. Transfer Money To Beneficiary")
+        print("5. Withdraw Money")
+        print("6. Deposit Money")
         print("7. Get Transaction History")
-        print("8. Change PIN")
-        print("9. Delete Beneficiary")
+        print("8. Check Total Balance")
+        print("9. Change PIN")
         print("10. Logout")
-        c = int(input("Select an option (1-10): "))
-        if c == 1:
-            passed= authenticate(data,['HSPIN'])
-            if passed:
-            # hs = int(input("ENTER HIGH SECURITY PIN : "))
-            # if hs == data["HIGH-SEQURITY PIN"]:
-                a=data["ACCOUNT_NO"]
-                add_beneficiary_to_file(a)
-            else:
-                print("INCORRECT HIGH SECURITY PIN ENTERED")
-        elif c == 2:
-            print_beneficiary_file()
-        elif c==3:
-            print_beneficiary_file()
-            accd = int(input("Enter Account Number to be Transferred: ").strip())
-            bq=''' SELECT "BENEFICIARY_NAME","BENEFICIARY_AC/NO","MAX.LIMIT"
-                    FROM BENEFICIARY
-                    WHERE "BENEFICIARY_AC/NO"=?
-                    '''
-            ds=query_db(bq,(accd,),1)
-            if not ds:
-                print("NO SUCH BENEFICIARY")
-            else:
-                bname=ds[0]
-                limit=ds[2]
-                amount=float(input("ENTER AMOUNT TO BE TRANSFERRED : "))
-                if amount>limit:
-                    print("AMOUNT EXCEEDS MAX TRANSFER LIMIT")
-                else:
-                    d=load_account_data()
-                    if amount>d["AMOUNT"]:
-                        print("INSUFFICIENT BALANCE")
-                    else:
-                        if authenticate(data,['TWPIN']):
-                            new_bal = d["AMOUNT"] - amount
-                            update_account_balance(new_bal)
-                            action = "TRANSFERRED"
-                            transaction_log(d["ACCOUNT_NO"],amount,bname,action)
-                            print(f"Transaction successful! New Balance: {new_bal}")
-                        else:
-                            print("Incorrect TPIN.")
-        elif c == 4:
-            amount = float(input("Enter amount: "))
-            current_data = load_account_data()
-            if amount > current_data["AMOUNT"]:
-                print("TRANSACTION CANNOT BE PROCESSED. INSUFFICIENT BALANCE")
-            else:
-                if authenticate(current_data,['TWPIN']):
-                    new_bal = current_data["AMOUNT"] - amount
-                    update_account_balance(new_bal)
-                    action = "WITHDRAWN"
-                    transaction_log(current_data["ACCOUNT_NO"],amount,"SELF",action)
-                    print(f"Transaction successful! New Balance: {new_bal}")
-                else:
-                    print("Incorrect TPIN.")
-        elif c == 5:
-            amount = float(input("Enter amount: "))
-            current_data = load_account_data()
-            if authenticate(current_data,['TWPIN']):
-                new_bal = current_data["AMOUNT"] + amount
-                update_account_balance(new_bal)
-                action = "DEPOSITED"
-                transaction_log(current_data["ACCOUNT_NO"],amount,"SELF",action)
-                print(f"Transaction successful! New Balance: {new_bal}")
-            else:
-                print("Incorrect TPIN.")
-        elif c == 6:
-            current_data = load_account_data()
-            print(f"Total Balance: {current_data['AMOUNT']}")
-        elif c==7:
-            print_transactions_file()
-        elif c == 8:
-            ans1 = input(f"Answer Q1 {q1}): ")
-            ans2 = input(f"Answer Q2 {q2}): ")
-            ans3 = input(f"Answer Q3 {q3}): ")
-            if (ans1 == data["a1"] and ans2 == data["a2"] and 
-                ans3 == data["a3"] and authenticate(current_data,['HSPIN'])):
-                new_pin = input("Enter new standard PIN: ")
-                data["PIN"] = new_pin
-                d=(new_pin,data["ACCOUNT_NO"])
-                q=''' update ACCOUNT
-                      set spin =?
-                      WHERE ACCOUNT_NUMBER=?'''
-                query_db(q,d,0)
-                print("PIN changed successfully.")
-            else:
-                print("Verification failed.")
-        elif c == 9: 
-            if authenticate(data, ['TPIN', 'HSPIN']):
-                delete_beneficiary_from_file()
-            else:
-                print("Incorrect credentials.")
-        elif c == 10:
-            break
+        c = int(input("Select an option (1-10): ")) # change conditions
+        if   c == 1: add_beneficiary(data)
+        elif c == 2: print_beneficiary()
+        elif c == 3: beneficiary_delete(data)
+        elif c == 4: tranfer_beneficiary(data)
+        elif c == 5: withdraw()
+        elif c == 6: deposit()
+        elif c == 7: print_transactions_file()
+        elif c == 8: check_balance()
+        elif c == 9: pin_change(data)
 
 def main():
     while True:
